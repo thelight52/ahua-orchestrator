@@ -1,0 +1,8 @@
+{
+  "build": {
+    "type": "nodejs"
+  },
+  "run": {
+    "command": "node node_modules/.bin/next start"
+  }
+}
