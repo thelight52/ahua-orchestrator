@@ -16,21 +16,27 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
   }
 
   try {
-    // 商品部使用 GAS，需要帶 action 在 querystring
+    // GAS 用 key= querystring 鑑權，其他 agent 用 Authorization header
     const isGas = agent.baseUrl.includes('script.google.com');
-    const url = isGas
-      ? `${agent.baseUrl}?action=${task.action}`
-      : `${agent.baseUrl}/api/agent/${task.action}`;
+    let url: string;
+    if (isGas) {
+      const params = new URLSearchParams({ action: task.action });
+      if (agent.apiKey) params.set('key', agent.apiKey);
+      url = `${agent.baseUrl}?${params}`;
+      delete headers['Authorization'];
+    } else {
+      url = `${agent.baseUrl}/api/agent/${task.action}`;
+    }
+
+    // GAS 期望 products 等欄位在 body 最頂層（不包在 payload 裡）
+    const bodyData = isGas
+      ? { taskId: task.taskId, ...task.payload }
+      : { taskId: task.taskId, from: task.from, action: task.action, payload: task.payload };
 
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        taskId: task.taskId,
-        from: task.from,
-        action: task.action,
-        payload: task.payload,
-      }),
+      body: JSON.stringify(bodyData),
     });
 
     if (!response.ok) {
