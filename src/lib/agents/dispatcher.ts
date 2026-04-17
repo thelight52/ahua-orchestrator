@@ -11,27 +11,28 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (agent.apiKey) {
-    headers['Authorization'] = `Bearer ${agent.apiKey}`;
-  }
 
   try {
-    // GAS 用 key= querystring 鑑權，其他 agent 用 Authorization header
+    // GAS：key= querystring 鑑權；其他 agent：X-Agent-Key header
     const isGas = agent.baseUrl.includes('script.google.com');
     let url: string;
     if (isGas) {
       const params = new URLSearchParams({ action: task.action });
       if (agent.apiKey) params.set('key', agent.apiKey);
       url = `${agent.baseUrl}?${params}`;
-      delete headers['Authorization'];
     } else {
       url = `${agent.baseUrl}/api/agent/${task.action}`;
+      if (agent.apiKey) headers['X-Agent-Key'] = agent.apiKey;
     }
 
-    // GAS 期望 products 等欄位在 body 最頂層（不包在 payload 裡）
-    const bodyData = isGas
-      ? { taskId: task.taskId, ...task.payload }
-      : { taskId: task.taskId, from: task.from, action: task.action, payload: task.payload };
+    // 所有 agent 統一把 payload 展開到 body 頂層，taskId 保留
+    // （GAS 吃 products 陣列、小助理吃 userId+message，都在 body root）
+    const payload = { ...task.payload };
+    // 小助理 notify/report 若未帶 userId，自動補入預設 LINE user
+    if (task.to === 'assistant' && !payload.userId && process.env.DEFAULT_LINE_USER_ID) {
+      payload.userId = process.env.DEFAULT_LINE_USER_ID;
+    }
+    const bodyData = { taskId: task.taskId, ...payload };
 
     const response = await fetch(url, {
       method: 'POST',

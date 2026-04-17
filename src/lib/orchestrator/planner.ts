@@ -19,8 +19,9 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
 可用的 Agent 及其 payload 格式：
 
 1. assistant（小助理）：LINE 通知/報告
-   - action: notify | report | message
-   - payload: { "message": "...", "userId"?: "..." }
+   - action: notify | report
+   - payload: { "userId": "...", "message": "..." }
+   ⚠ notify 必須帶 userId（LINE user id）和 message。userId 若未指定可留空，dispatcher 會自動帶入預設值
 
 2. product（商品部）：商品簡介生成（GAS Web App）
    - action: product-intro
