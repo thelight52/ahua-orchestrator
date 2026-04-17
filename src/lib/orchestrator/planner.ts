@@ -22,6 +22,7 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
    - action: notify | report
    - payload: { "userId": "...", "message": "..." }
    ⚠ notify 必須帶 userId（LINE user id）和 message。userId 若未指定可留空，dispatcher 會自動帶入預設值
+   ⚠ 若 notify 有 dependsOn 依賴前面任務，message 只要放「任務主題 / 語氣提示」即可（例如「商品簡介生成完成」），dispatcher 會自動把前面任務的實際結果（如商品簡介全文）整合進 LINE 訊息，不要在這裡寫「請查收」等佔位字
 
 2. product（商品部）：商品簡介生成（GAS Web App）
    - action: product-intro

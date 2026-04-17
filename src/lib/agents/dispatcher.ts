@@ -1,5 +1,6 @@
 import { getAgent } from './registry';
 import { Task, AgentResponse } from '../types';
+import { composeNotificationMessage } from '../orchestrator/composeNotification';
 
 // 呼叫對應 Agent 的 API
 export async function dispatchTask(task: Task): Promise<AgentResponse> {
@@ -93,6 +94,24 @@ export async function dispatchMultiple(tasks: Task[]): Promise<Task[]> {
   // Phase 2：依序執行有依賴的任務
   for (const task of hasDeps) {
     task.status = 'running';
+
+    // 小助理的 notify/report：把依賴任務的實際結果整合成 LINE 訊息
+    const isAssistantNotify =
+      task.to === 'assistant' && (task.action === 'notify' || task.action === 'report');
+    if (isAssistantNotify && task.dependsOn && task.dependsOn.length > 0) {
+      const deps = task.dependsOn
+        .map((i) => results[i])
+        .filter((t): t is Task => !!t && t.status === 'done');
+      if (deps.length > 0) {
+        try {
+          const composed = await composeNotificationMessage(task, deps);
+          task.payload = { ...task.payload, message: composed };
+        } catch (err) {
+          console.warn('[dispatcher] 組合通知訊息失敗，fallback 用原始 message:', err);
+        }
+      }
+    }
+
     const res = await dispatchTask(task);
     task.status = res.success ? 'done' : 'error';
     task.result = res.data;
