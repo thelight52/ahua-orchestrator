@@ -5,12 +5,32 @@ import Link from 'next/link';
 import { AGENT_THEMES, AgentId } from '@/lib/ui/agentTheme';
 import type { PipelineRun, TaskRun, Pipeline } from '@/lib/orchestrator/pipeline';
 
+interface InputField {
+  key: string;
+  label: string;
+  type?: 'text' | 'textarea' | 'image';
+  placeholder?: string;
+  required?: boolean;
+}
+
 interface TemplateSummary {
   key: string;
   name: string;
   description: string;
-  inputSchema: { key: string; label: string; placeholder?: string; required?: boolean }[];
+  inputSchema: InputField[];
   taskCount: number;
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      resolve(dataUrl.split(',')[1] ?? '');
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 const STATUS_STYLE: Record<TaskRun['status'], { label: string; color: string; bg: string }> = {
@@ -221,21 +241,14 @@ export default function PipelinePage() {
               {selectedTemplate && selectedTemplate.inputSchema.length > 0 && (
                 <div>
                   <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">輸入參數</label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {selectedTemplate.inputSchema.map((f) => (
-                      <div key={f.key}>
-                        <label className="block text-xs text-gray-500 mb-1">
-                          {f.label}
-                          {f.required && <span className="text-red-400 ml-1">*</span>}
-                        </label>
-                        <input
-                          type="text"
-                          value={input[f.key] ?? ''}
-                          onChange={(e) => setInput({ ...input, [f.key]: e.target.value })}
-                          placeholder={f.placeholder}
-                          className="w-full bg-gray-950 text-gray-100 rounded-lg px-3 py-2 text-sm border border-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                        />
-                      </div>
+                      <InputFieldRenderer
+                        key={f.key}
+                        field={f}
+                        value={input[f.key] ?? ''}
+                        onChange={(v) => setInput({ ...input, [f.key]: v })}
+                      />
                     ))}
                   </div>
                 </div>
@@ -325,6 +338,81 @@ export default function PipelinePage() {
         {run && <RunView run={run} onConfirm={handleConfirm} />}
       </div>
     </main>
+  );
+}
+
+function InputFieldRenderer({
+  field,
+  value,
+  onChange,
+}: {
+  field: InputField;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  async function handleFile(file: File | null) {
+    if (!file) {
+      onChange('');
+      setPreviewUrl(null);
+      setFileName(null);
+      return;
+    }
+    const base64 = await fileToBase64(file);
+    onChange(base64);
+    setPreviewUrl(URL.createObjectURL(file));
+    setFileName(file.name);
+  }
+
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">
+        {field.label}
+        {field.required && <span className="text-red-400 ml-1">*</span>}
+      </label>
+
+      {field.type === 'image' ? (
+        <label className="flex flex-col items-center justify-center gap-2 bg-gray-950/70 border-2 border-dashed border-gray-700 hover:border-yellow-600 rounded-xl p-5 cursor-pointer transition-colors">
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt="preview" className="max-h-32 rounded-lg" />
+          ) : (
+            <>
+              <span className="text-3xl">🖼</span>
+              <span className="text-xs text-gray-400">點擊上傳圖片（自動轉 base64）</span>
+            </>
+          )}
+          {fileName && <span className="text-xs text-emerald-400">{fileName}</span>}
+          {value && !fileName && (
+            <span className="text-xs text-emerald-400">已編碼 {(value.length / 1024).toFixed(1)} KB</span>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+      ) : field.type === 'textarea' ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          rows={3}
+          className="w-full bg-gray-950 text-gray-100 rounded-lg px-3 py-2 text-sm border border-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          className="w-full bg-gray-950 text-gray-100 rounded-lg px-3 py-2 text-sm border border-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+        />
+      )}
+    </div>
   );
 }
 

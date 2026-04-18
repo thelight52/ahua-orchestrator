@@ -35,10 +35,12 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
     }
     const bodyData = { taskId: task.taskId, ...payload };
 
+    // 30 秒 timeout 避免某些 agent 回應 hang 住拖垮整個 pipeline
     const response = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(bodyData),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {

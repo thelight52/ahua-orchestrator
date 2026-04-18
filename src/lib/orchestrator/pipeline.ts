@@ -66,8 +66,10 @@ export interface PipelineRun {
   awaitingTaskId?: number;
 }
 
-const MAX_RETRIES = 2;
-const RETRY_DELAYS_MS = [1000, 3000];
+// MVP：過度重試會讓整個 pipeline 卡太久（單一 fetch 已有 30s timeout）。
+// 重試 1 次足以處理暫時性錯誤，真正的服務未啟用則快速標記 error 讓後續依賴跳過。
+const MAX_RETRIES = 1;
+const RETRY_DELAYS_MS = [1500];
 
 // ============ 模板變數注入 ============
 // 支援 {{task[N].result.path.to.value}} 和 {{task[N].result}}
