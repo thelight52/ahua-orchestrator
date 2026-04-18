@@ -41,6 +41,14 @@ const agents: AgentConfig[] = [
     capabilities: ['generate-copy', 'generate-image', 'schedule-post'],
     healthEndpoint: '/api/agent/health',
   },
+  {
+    id: 'realestate',
+    name: '房地產查詢',
+    baseUrl: process.env.AGENT_REALESTATE_URL ?? '',
+    apiKey: process.env.AGENT_REALESTATE_KEY,
+    capabilities: ['591-lookup'],
+    healthEndpoint: '/api/agent/health',
+  },
 ];
 
 export function getAgent(id: string): AgentConfig | undefined {

@@ -37,6 +37,13 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
    - action: generate-copy | generate-image | generate-video
    - payload: { "productName": "...", "style"?: "...", "platform"?: "IG|FB" }
 
+5. realestate（房地產查詢）：591 物件 → foundi.info 實價登錄與地址吻合度查詢
+   - action: 591-lookup
+   - payload: { "userId": "...", "url": "https://sale.591.com.tw/..." }
+   ⚠ 觸發條件：指令含 591 網址（sale.591.com.tw）或提到「實價登錄」「foundi」「地址吻合度」
+   ⚠ url 必須是 sale.591.com.tw 物件詳情連結（https://sale.591.com.tw/home/house/detail/...）
+   ⚠ 此 agent 會自行 push 兩個結果 URL 給 userId，因此「不要」再串接 assistant notify 任務
+
 回傳格式為 JSON 陣列，每個元素包含：
 {
   "to": "agent id",

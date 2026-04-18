@@ -104,6 +104,28 @@ export default function Home() {
           </div>
         </section>
 
+        {/* 工作流入口 */}
+        <section className="mb-10">
+          <h2 className="text-xs text-gray-500 uppercase tracking-widest mb-4">工作流</h2>
+          <Link
+            href="/pipeline"
+            className="group block bg-gradient-to-br from-yellow-900/30 via-gray-900 to-gray-900 border border-yellow-900/50 rounded-2xl p-5 hover:border-yellow-600 transition-all"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <span className="text-3xl shrink-0">🕸</span>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-yellow-300">Pipeline 工作流</h3>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    多步驟任務編排 · 人工確認節點 · 自動重試
+                  </p>
+                </div>
+              </div>
+              <span className="text-gray-500 group-hover:translate-x-1 transition-transform text-xl">→</span>
+            </div>
+          </Link>
+        </section>
+
         {/* Agent 卡片總覽 */}
         <section className="mb-10">
           <h2 className="text-xs text-gray-500 uppercase tracking-widest mb-4">各部門入口</h2>
