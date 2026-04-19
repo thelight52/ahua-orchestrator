@@ -3,16 +3,21 @@ import { v4 as uuidv4 } from 'uuid';
 import { planTasks } from '@/lib/orchestrator/planner';
 import { dispatchMultiple } from '@/lib/agents/dispatcher';
 import { aggregateResults } from '@/lib/orchestrator/aggregator';
+import { expand591ShortLinks } from '@/lib/orchestrator/expandUrls';
 import { OrchestrationRequest, OrchestrationResult } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
     const body: OrchestrationRequest = await req.json();
-    const { instruction, userId } = body;
+    const { instruction: rawInstruction, userId } = body;
 
-    if (!instruction?.trim()) {
+    if (!rawInstruction?.trim()) {
       return NextResponse.json({ error: '請輸入指令' }, { status: 400 });
     }
+
+    // 先展開 591 分享短連結（www.591.com.tw/XX?salt=...）為 sale.591.com.tw 完整網址，
+    // 否則 realestate agent 的 zod 會拒絕，planner 也沒辦法產生正確任務
+    const instruction = await expand591ShortLinks(rawInstruction);
 
     const orchestrationId = uuidv4();
 
