@@ -43,10 +43,10 @@ const agents: AgentConfig[] = [
   },
   {
     id: 'realestate',
-    name: '房地產查詢',
+    name: '房地產整合器',
     baseUrl: process.env.AGENT_REALESTATE_URL ?? '',
     apiKey: process.env.AGENT_REALESTATE_KEY,
-    capabilities: ['591-lookup'],
+    capabilities: ['591-lookup', 'yungching-lookup'],
     healthEndpoint: '/api/agent/health',
   },
 ];

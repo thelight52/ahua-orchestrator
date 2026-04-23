@@ -21,6 +21,10 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
       const params = new URLSearchParams({ action: task.action });
       if (agent.apiKey) params.set('key', agent.apiKey);
       url = `${agent.baseUrl}?${params}`;
+    } else if (task.to === 'realestate') {
+      // 房地產整合器統一端點 /api/agent/lookup（不管 591 還是永慶 URL）
+      url = `${agent.baseUrl}/api/agent/lookup`;
+      if (agent.apiKey) headers['X-Agent-Key'] = agent.apiKey;
     } else {
       url = `${agent.baseUrl}/api/agent/${task.action}`;
       if (agent.apiKey) headers['X-Agent-Key'] = agent.apiKey;

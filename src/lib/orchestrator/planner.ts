@@ -37,12 +37,12 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
    - action: generate-copy | generate-image | generate-video
    - payload: { "productName": "...", "style"?: "...", "platform"?: "IG|FB" }
 
-5. realestate（房地產查詢）：591 或永慶物件 → foundi.info 實價登錄與地址吻合度查詢
-   - action: 591-lookup（支援永慶 URL 也走同一個 action）
+5. realestate（房地產整合器）：591 或永慶物件 → 爬取物件 + 對應 Foundi 實價登錄與地址吻合度查詢
+   - action：591-lookup（591 網址時用）或 yungching-lookup（永慶網址時用）
    - payload: { "userId": "...", "url": "原始完整網址" }
    ⚠ 觸發條件：指令含 591 或永慶網址（sale.591.com.tw / buy.yungching.com.tw）或提到「實價登錄」「foundi」「地址吻合度」
    ⚠ URL 必須是原始完整連結（含 query string），禁止任何形式的截斷或省略
-   ⚠ 若指令只有一個 URL、沒其他內容，直接生成單一 realestate 任務即可
+   ⚠ 若訊息中夾雜其他文字（如永慶業務推薦語），仍以其中的 URL 為主，其他敘述忽略
    ⚠ 此 agent 會自行 push 結果給 userId，不要再串接 assistant notify 任務
 
 回傳格式，每個元素：
