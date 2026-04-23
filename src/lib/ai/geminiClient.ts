@@ -84,7 +84,7 @@ async function callModel(
     contents: [{ role: 'user', parts: [{ text: mergedUser }] }],
     generationConfig: {
       temperature: options?.temperature ?? 0.5,
-      maxOutputTokens: options?.maxOutputTokens ?? 1024,
+      maxOutputTokens: options?.maxOutputTokens ?? 2048,
     },
   };
   if (!gemma && systemPrompt) {
