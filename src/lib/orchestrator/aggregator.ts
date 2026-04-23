@@ -1,9 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { generateText } from '../ai/geminiClient';
 import { Task } from '../types';
-
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export async function aggregateResults(
   instruction: string,
@@ -18,25 +14,17 @@ export async function aggregateResults(
     error: t.error,
   }));
 
-  const response = await client.messages.create({
-    model: 'claude-opus-4-7',
-    max_tokens: 512,
-    messages: [
-      {
-        role: 'user',
-        content: `使用者指令：${instruction}
+  const userPrompt = `使用者指令：${instruction}
 
 各子任務執行結果：
 ${JSON.stringify(taskSummary, null, 2)}
 
-請用繁體中文，簡潔地告訴使用者任務執行的結果。如果有錯誤，說明哪個環節失敗了。`,
-      },
-    ],
-  });
+請用繁體中文，簡潔地告訴使用者任務執行的結果。如果有錯誤，說明哪個環節失敗了。`;
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
+  try {
+    return await generateText('', userPrompt, { temperature: 0.5, maxOutputTokens: 512 });
+  } catch (err) {
+    console.warn('[aggregator] AI 失敗，回退預設文字:', err instanceof Error ? err.message : err);
     return '任務執行完成。';
   }
-  return content.text;
 }

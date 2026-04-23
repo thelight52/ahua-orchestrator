@@ -1,9 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { generateText } from '../ai/geminiClient';
 import { Task, createTask } from '../types';
-
-function getClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-}
 
 interface PlannerTask {
   to: string;
@@ -53,30 +49,35 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
   "dependsOn": [0, 1]  // 可選，依賴第幾個任務（0-indexed）
 }
 
-只回傳 JSON，不要有其他文字。`;
+只回傳 JSON 陣列，不要有其他文字、markdown、說明或前言。直接從 [ 開始，以 ] 結束。`;
+
+// 從可能夾雜說明文字 / markdown fence 的回應中擷取 JSON 陣列
+function extractJsonArray(raw: string): string {
+  let s = raw.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+  const first = s.indexOf('[');
+  const last = s.lastIndexOf(']');
+  if (first !== -1 && last !== -1 && last > first) {
+    s = s.slice(first, last + 1);
+  }
+  return s;
+}
 
 export async function planTasks(instruction: string, userId?: string): Promise<Task[]> {
-  const client = getClient();
-  const response = await client.messages.create({
-    model: 'claude-opus-4-7',
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: `指令：${instruction}${userId ? `\n使用者 ID：${userId}` : ''}`,
-      },
-    ],
+  const userPrompt = `指令：${instruction}${userId ? `\n使用者 ID：${userId}` : ''}`;
+  const rawText = await generateText(SYSTEM_PROMPT, userPrompt, {
+    temperature: 0.3,
+    maxOutputTokens: 1024,
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Planner 回傳格式錯誤');
+  // Gemini 有時會在 JSON 前後塞說明文字，抓出第一個 [...] 陣列區塊
+  const jsonText = extractJsonArray(rawText);
+  let plannerTasks: PlannerTask[];
+  try {
+    plannerTasks = JSON.parse(jsonText);
+  } catch (err) {
+    console.error('[planner] JSON 解析失敗。原始回應：', rawText);
+    throw new Error(`Planner 回傳非合法 JSON：${err instanceof Error ? err.message : err}`);
   }
-
-  // 清除可能的 markdown code block
-  const jsonText = content.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  const plannerTasks: PlannerTask[] = JSON.parse(jsonText);
 
   return plannerTasks.map((pt) =>
     createTask({
