@@ -37,12 +37,21 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
    - action: generate-copy | generate-image | generate-video
    - payload: { "productName": "...", "style"?: "...", "platform"?: "IG|FB" }
 
-5. realestate（房地產整合器）：591 或永慶物件 → 爬取物件 + 對應 Foundi 實價登錄與地址吻合度查詢
-   - action：591-lookup（591 網址時用）或 yungching-lookup（永慶網址時用）
+5. realestate（房地產整合器）：8 家房仲物件 → 爬取物件 + 對應 Foundi 實價登錄與地址吻合度查詢
+   - action：lookup（統一入口，自動辨識來源房仲）
    - payload: { "userId": "...", "url": "原始完整網址" }
-   ⚠ 觸發條件：指令含 591 或永慶網址（sale.591.com.tw / buy.yungching.com.tw）或提到「實價登錄」「foundi」「地址吻合度」
+   ⚠ 支援的房仲網址（任一即觸發）：
+     • 591：sale.591.com.tw
+     • 永慶：buy.yungching.com.tw、ycut.com.tw（短網址）
+     • 有巢氏：ychouse.com.tw、x.ychouse.tw（短網址）
+     • 信義：sinyi.com.tw
+     • 東森：etwarm.com.tw
+     • 台灣房屋：twhg.com.tw
+     • 住商不動產：hbhousing.com.tw
+     • 中信房屋：cthouse.com.tw
+   ⚠ 也可由「實價登錄」「foundi」「地址吻合度」等關鍵字觸發
    ⚠ URL 必須是原始完整連結（含 query string），禁止任何形式的截斷或省略
-   ⚠ 若訊息中夾雜其他文字（如永慶業務推薦語），仍以其中的 URL 為主，其他敘述忽略
+   ⚠ 若訊息中夾雜其他文字（如業務推薦語），仍以其中的 URL 為主，其他敘述忽略
    ⚠ 此 agent 會自行 push 結果給 userId，不要再串接 assistant notify 任務
 
 回傳格式，每個元素：
@@ -114,11 +123,12 @@ function regexFallback(raw: string, instruction: string): PlannerTask[] {
   const urlMatch = instruction.match(/https?:\/\/\S+/);
   if (urlMatch) {
     const url = urlMatch[0].replace(/[，。、\s]+$/, ''); // 去掉中文標點尾綴
-    if (/sale\.591\.com\.tw|buy\.yungching\.com\.tw/.test(url)) {
+    const REALESTATE_HOSTS = /sale\.591\.com\.tw|buy\.yungching\.com\.tw|ycut\.com\.tw|ychouse\.(com\.tw|tw)|sinyi\.com\.tw|etwarm\.com\.tw|twhg\.com\.tw|hbhousing\.com\.tw|cthouse\.com\.tw/;
+    if (REALESTATE_HOSTS.test(url)) {
       return [
         {
           to: 'realestate',
-          action: '591-lookup',
+          action: 'lookup',
           payload: { url, userId: '' },
           priority: 'high',
         },
