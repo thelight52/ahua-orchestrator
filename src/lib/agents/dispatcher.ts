@@ -33,8 +33,10 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
     // 所有 agent 統一把 payload 展開到 body 頂層，taskId 保留
     // （GAS 吃 products 陣列、小助理吃 userId+message，都在 body root）
     const payload = { ...task.payload };
-    // 小助理 notify/report 若未帶 userId，自動補入預設 LINE user
-    if (task.to === 'assistant' && !payload.userId && process.env.DEFAULT_LINE_USER_ID) {
+    // 小助理 notify/report、房地產 lookup：若未帶 userId，自動補入預設
+    // （房地產 App 會用此 userId 把查詢結果推回 LINE）
+    const needsUserId = task.to === 'assistant' || task.to === 'realestate';
+    if (needsUserId && !payload.userId && process.env.DEFAULT_LINE_USER_ID) {
       payload.userId = process.env.DEFAULT_LINE_USER_ID;
     }
     const bodyData = { taskId: task.taskId, ...payload };
