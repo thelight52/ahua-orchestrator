@@ -42,7 +42,14 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
       if (agent.apiKey) params.set('key', agent.apiKey);
       url = `${agent.baseUrl}?${params}`;
     } else if (task.to === 'realestate') {
-      // 房地產整合器統一端點 /api/agent/lookup（不管 591 還是永慶 URL）
+      // 房地產整合器統一端點 /api/agent/lookup
+      // action 對應到 mode 參數：
+      //   lookup            → mode 不帶（預設行為）
+      //   foundi-lookup     → mode=full
+      //   realprice         → mode=realprice
+      //   address-match     → mode=address
+      //   import            → mode=import
+      //   foundi-list       → mode=list
       url = `${agent.baseUrl}/api/agent/lookup`;
       if (agent.apiKey) headers['X-Agent-Key'] = agent.apiKey;
     } else {
@@ -59,6 +66,20 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
     if (needsUserId && !payload.userId && process.env.DEFAULT_LINE_USER_ID) {
       payload.userId = process.env.DEFAULT_LINE_USER_ID;
     }
+
+    // 房地產：把 action 轉成 mode 欄位（小助理 Quick Reply 觸發的子模式）
+    if (task.to === 'realestate') {
+      const ACTION_TO_MODE: Record<string, string> = {
+        'foundi-lookup': 'full',
+        'realprice': 'realprice',
+        'address-match': 'address',
+        'import': 'import',
+        'foundi-list': 'list',
+      };
+      const mode = ACTION_TO_MODE[task.action];
+      if (mode) payload.mode = mode;
+    }
+
     const bodyData = { taskId: task.taskId, ...payload };
 
     // 90 秒 timeout（Gemini 生圖 / Veo 生影片可能需要 60 秒以上）

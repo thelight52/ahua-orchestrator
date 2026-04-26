@@ -171,7 +171,28 @@ function regexFallback(raw: string, instruction: string): PlannerTask[] {
 }
 
 export async function planTasks(instruction: string, userId?: string): Promise<Task[]> {
-  // Fast-path：訊息裡只要含房仲 URL，直接生成 realestate lookup 任務，跳過 Gemini
+  // Fast-path 1：小助理 Quick Reply 觸發的明確指令（前綴 + URL）
+  // 例：foundi-lookup https://... / realprice https://... / address-match https://...
+  // 直接帶 action 回去，dispatcher 會把它對應到 /api/agent/lookup 的對應 mode
+  const REALESTATE_COMMANDS = ['foundi-lookup', 'realprice', 'address-match', 'import', 'foundi-list'] as const;
+  const trimmedInst = instruction.trim();
+  for (const cmd of REALESTATE_COMMANDS) {
+    if (trimmedInst.startsWith(cmd + ' ') || trimmedInst === cmd) {
+      const url = trimmedInst.slice(cmd.length).trim();
+      console.log(`[planner] fast-path: 房仲 Quick Reply 指令 ${cmd}`);
+      return [
+        createTask({
+          from: 'orchestrator',
+          to: 'realestate',
+          action: cmd,
+          payload: { url, userId: userId ?? '' },
+          priority: 'high',
+        }),
+      ];
+    }
+  }
+
+  // Fast-path 2：訊息裡只要含房仲 URL，直接生成 realestate lookup 任務，跳過 Gemini
   // 原因：Gemini 偶爾會忽略 URL 改去分析旁邊的描述文字。URL 是最強的意圖訊號，
   // regex 命中即視為查物件，比繞 LLM 一圈更可靠也更省 token。
   const realestateUrl = extractRealestateUrl(instruction);
