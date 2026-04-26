@@ -15,6 +15,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '請輸入指令' }, { status: 400 });
     }
 
+    // 短指令直接回提示，省 token 也避免 Gemini 自由發揮（例如「@GOAT 幫我查」+空白）
+    // 條件：trim 後 ≤ 12 字、不含 URL、且只是常見召喚詞片段
+    const PROMPT_STUBS = /^(@?GOAT\s*)?(幫我查|查寶雅|幫我生成( 文案| 圖片| 影片)?|幫忙|查一下|看一下)\s*$/;
+    const trimmed = rawInstruction.trim();
+    if (
+      trimmed.length <= 12 &&
+      !/https?:\/\//.test(trimmed) &&
+      PROMPT_STUBS.test(trimmed)
+    ) {
+      return NextResponse.json({
+        taskId: uuidv4(),
+        status: 'prompt',
+        subtasks: [],
+        summary: '請直接貼上房仲物件網址，或具體描述你要做什麼（例如：「生成 K2505 商品簡介」） 🔍',
+      });
+    }
+
     // 先展開 591 分享短連結（www.591.com.tw/XX?salt=...）為 sale.591.com.tw 完整網址，
     // 否則 realestate agent 的 zod 會拒絕，planner 也沒辦法產生正確任務
     const instruction = await expand591ShortLinks(rawInstruction);
