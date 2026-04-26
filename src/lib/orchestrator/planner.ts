@@ -174,7 +174,7 @@ export async function planTasks(instruction: string, userId?: string): Promise<T
   // Fast-path 1：小助理 Quick Reply 觸發的明確指令（前綴 + URL）
   // 例：foundi-lookup https://... / realprice https://... / address-match https://...
   // 直接帶 action 回去，dispatcher 會把它對應到 /api/agent/lookup 的對應 mode
-  const REALESTATE_COMMANDS = ['foundi-lookup', 'realprice', 'address-match', 'import', 'foundi-list'] as const;
+  const REALESTATE_COMMANDS = ['foundi-lookup', 'realprice', 'address-match', 'import', 'foundi-list', 'notion-save'] as const;
   const trimmedInst = instruction.trim();
   for (const cmd of REALESTATE_COMMANDS) {
     if (trimmedInst.startsWith(cmd + ' ') || trimmedInst === cmd) {

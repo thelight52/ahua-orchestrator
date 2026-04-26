@@ -75,6 +75,7 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
         'address-match': 'address',
         'import': 'import',
         'foundi-list': 'list',
+        'notion-save': 'notion-save',
       };
       const mode = ACTION_TO_MODE[task.action];
       if (mode) payload.mode = mode;
