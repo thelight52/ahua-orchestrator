@@ -17,6 +17,11 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
 - 絕對不要有 markdown code fence（不要用 \`\`\`json）、不要有任何說明文字、前言或結語
 - 所有 URL 必須「完整、原封不動」地放進 payload — 禁止截斷、省略、加 ...
 
+⚠ URL 即意圖（最高優先級）：
+- 只要訊息中含**任何房仲 URL**（清單見 realestate agent 段落），就**無條件**生成 realestate lookup 任務
+- 不要分析 URL 旁邊的中文描述、不要嘗試從文字內容判斷其他 agent
+- 不要對使用者反問「你要查什麼」— URL 就是答案
+
 可用的 Agent 及其 payload 格式：
 
 1. assistant（小助理）：LINE 通知/報告
@@ -129,23 +134,23 @@ function tryRepairTruncatedJson(raw: string): string {
   return s;
 }
 
+// 房仲網域清單（包含短網址）— 統一給 fast-path 與 fallback 使用
+const REALESTATE_HOSTS =
+  /sale\.591\.com\.tw|buy\.yungching\.com\.tw|ycut\.com\.tw|ychouse\.com\.tw|x\.ychouse\.tw|sinyi\.com\.tw|etwarm\.com\.tw|twhg\.com\.tw|hbhousing\.com\.tw|cthouse\.com\.tw/;
+
+function extractRealestateUrl(text: string): string | null {
+  const m = text.match(/https?:\/\/\S+/);
+  if (!m) return null;
+  const url = m[0].replace(/[，。、！？「」『』\s]+$/, '');
+  return REALESTATE_HOSTS.test(url) ? url : null;
+}
+
 // 最後手段：用 regex 從原始回應裡湊出一個 task（至少救下 URL）
 function regexFallback(raw: string, instruction: string): PlannerTask[] {
   // 從指令原文抓 URL（比從 Gemini 回應抓更可靠 — 指令就是用戶直接輸入的）
-  const urlMatch = instruction.match(/https?:\/\/\S+/);
-  if (urlMatch) {
-    const url = urlMatch[0].replace(/[，。、\s]+$/, ''); // 去掉中文標點尾綴
-    const REALESTATE_HOSTS = /sale\.591\.com\.tw|buy\.yungching\.com\.tw|ycut\.com\.tw|ychouse\.(com\.tw|tw)|sinyi\.com\.tw|etwarm\.com\.tw|twhg\.com\.tw|hbhousing\.com\.tw|cthouse\.com\.tw/;
-    if (REALESTATE_HOSTS.test(url)) {
-      return [
-        {
-          to: 'realestate',
-          action: 'lookup',
-          payload: { url, userId: '' },
-          priority: 'high',
-        },
-      ];
-    }
+  const url = extractRealestateUrl(instruction);
+  if (url) {
+    return [{ to: 'realestate', action: 'lookup', payload: { url, userId: '' }, priority: 'high' }];
   }
 
   // 從 raw 回應抓 agent/action（容錯解析）
@@ -166,6 +171,23 @@ function regexFallback(raw: string, instruction: string): PlannerTask[] {
 }
 
 export async function planTasks(instruction: string, userId?: string): Promise<Task[]> {
+  // Fast-path：訊息裡只要含房仲 URL，直接生成 realestate lookup 任務，跳過 Gemini
+  // 原因：Gemini 偶爾會忽略 URL 改去分析旁邊的描述文字。URL 是最強的意圖訊號，
+  // regex 命中即視為查物件，比繞 LLM 一圈更可靠也更省 token。
+  const realestateUrl = extractRealestateUrl(instruction);
+  if (realestateUrl) {
+    console.log('[planner] fast-path: 偵測到房仲 URL，跳過 Gemini 直接派 lookup');
+    return [
+      createTask({
+        from: 'orchestrator',
+        to: 'realestate',
+        action: 'lookup',
+        payload: { url: realestateUrl, userId: userId ?? '' },
+        priority: 'high',
+      }),
+    ];
+  }
+
   const userPrompt = `指令：${instruction}${userId ? `\n使用者 ID：${userId}` : ''}`;
   const rawText = await generateText(SYSTEM_PROMPT, userPrompt, {
     temperature: 0.2, // 降低溫度讓 JSON 更穩定
