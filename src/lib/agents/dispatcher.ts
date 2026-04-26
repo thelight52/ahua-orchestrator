@@ -14,6 +14,26 @@ export async function dispatchTask(task: Task): Promise<AgentResponse> {
   };
 
   try {
+    // 通路平台 sales-query：GET + querystring（讀 Google Sheet 的銷量資料，無 body）
+    if (task.to === 'channel-platform' && task.action === 'sales-query') {
+      const params = new URLSearchParams();
+      const p = task.payload as Record<string, unknown>;
+      if (p.keyword) params.set('keyword', String(p.keyword));
+      if (p.month) params.set('month', String(p.month));
+      if (p.tab) params.set('tab', String(p.tab));
+      const url = `${agent.baseUrl}/api/agent/poya/sales/query?${params}`;
+      if (agent.apiKey) headers['X-Agent-Key'] = agent.apiKey;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok) {
+        return { success: false, error: `HTTP ${response.status}: ${await response.text()}` };
+      }
+      return { success: true, data: await response.json() };
+    }
+
     // GAS：key= querystring 鑑權；其他 agent：X-Agent-Key header
     const isGas = agent.baseUrl.includes('script.google.com');
     let url: string;

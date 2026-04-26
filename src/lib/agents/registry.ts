@@ -49,6 +49,14 @@ const agents: AgentConfig[] = [
     capabilities: ['591-lookup', 'yungching-lookup'],
     healthEndpoint: '/api/agent/health',
   },
+  {
+    id: 'channel-platform',
+    name: 'AI 通路作業平台',
+    baseUrl: process.env.AGENT_CHANNEL_URL ?? 'https://ai-channel-platform.vercel.app',
+    apiKey: process.env.AGENT_CHANNEL_KEY,    // query API 不需 key（公開讀取），但留欄位給未來寫入用
+    capabilities: ['sales-query', 'stock-query'],
+    healthEndpoint: '/api/health',
+  },
 ];
 
 export function getAgent(id: string): AgentConfig | undefined {

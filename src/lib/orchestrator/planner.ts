@@ -37,7 +37,19 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
    - action: generate-copy | generate-image | generate-video
    - payload: { "productName": "...", "style"?: "...", "platform"?: "IG|FB" }
 
-5. realestate（房地產整合器）：8 家房仲物件 → 爬取物件 + 對應 Foundi 實價登錄與地址吻合度查詢
+5. channel-platform（AI 通路作業平台）：通路銷量／庫存查詢
+   - action: sales-query
+   - payload: { "keyword": "K2505|商品名|條碼", "month"?: "YYYYMM", "tab"?: "全品銷量總表|A07總表|A04總表|A08總表|A12總表" }
+   ⚠ 觸發時機：
+     • 「查 寶雅 XXX 銷量」「XXX 上個月賣多少」「XXX 幾月銷量」
+     • 「賣最好的襪款」「A07 部門 3 月排行」
+     • 不指定通路時預設查寶雅（目前唯一支援的通路）
+   ⚠ keyword 必填，可放品名關鍵字、國際條碼、品項條碼，採模糊比對
+   ⚠ month 為 YYYYMM 6 碼數字（如 202603）。「上個月」「3 月」需轉換成具體 YYYYMM
+   ⚠ 部門分頁：襪類→A07總表、飾品→A04總表、內衣/小可愛→A08總表、零食→A12總表
+   ⚠ 此 agent 回傳純資料，若需 LINE 推播結果，再加一個 dependsOn 的 assistant notify 任務
+
+6. realestate（房地產整合器）：8 家房仲物件 → 爬取物件 + 對應 Foundi 實價登錄與地址吻合度查詢
    - action：lookup（統一入口，自動辨識來源房仲）
    - payload: { "userId": "...", "url": "原始完整網址" }
    ⚠ 支援的房仲網址（任一即觸發）：
