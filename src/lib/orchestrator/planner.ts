@@ -60,7 +60,7 @@ const SYSTEM_PROMPT = `你是阿華 Orchestrator 的任務拆解器。
    ⚠ 支援的房仲網址（任一即觸發）：
      • 591：sale.591.com.tw
      • 永慶：buy.yungching.com.tw、ycut.com.tw（短網址）
-     • 有巢氏：ychouse.com.tw、x.ychouse.tw（短網址）
+     • 有巢氏：buy.u-trust.com.tw（買屋主站，永慶集團同 codebase）、ychouse.com.tw、x.ychouse.tw（短網址）
      • 信義：sinyi.com.tw
      • 東森：etwarm.com.tw
      • 台灣房屋：twhg.com.tw
@@ -136,7 +136,7 @@ function tryRepairTruncatedJson(raw: string): string {
 
 // 房仲網域清單（包含短網址）— 統一給 fast-path 與 fallback 使用
 const REALESTATE_HOSTS =
-  /sale\.591\.com\.tw|buy\.yungching\.com\.tw|ycut\.com\.tw|ychouse\.com\.tw|x\.ychouse\.tw|sinyi\.com\.tw|etwarm\.com\.tw|twhg\.com\.tw|hbhousing\.com\.tw|cthouse\.com\.tw/;
+  /sale\.591\.com\.tw|buy\.yungching\.com\.tw|ycut\.com\.tw|ychouse\.com\.tw|x\.ychouse\.tw|u-trust\.com\.tw|sinyi\.com\.tw|etwarm\.com\.tw|twhg\.com\.tw|hbhousing\.com\.tw|cthouse\.com\.tw/;
 
 function extractRealestateUrl(text: string): string | null {
   const m = text.match(/https?:\/\/\S+/);
